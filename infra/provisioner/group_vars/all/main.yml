@@ -1,0 +1,13 @@
+---
+# common
+aws_region: us-west-2
+aws_account_id: 
+
+
+
+# Docker Repo urls
+celery_image_repo: "{{ aws_account_id }}.dkr.ecr.us-west-2.amazonaws.com/hello_world/api"
+apiserver_image_repo: "{{ aws_account_id }}.dkr.ecr.us-west-2.amazonaws.com/hello_world/celery"
+
+ansible_user: "ubuntu"
+

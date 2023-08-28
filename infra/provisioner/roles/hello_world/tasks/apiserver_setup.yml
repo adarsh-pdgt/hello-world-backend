@@ -1,0 +1,31 @@
+---
+
+- name: Pull latest image
+  community.docker.docker_image:
+    name: "{{ apiserver_image_repo }}"
+    source: pull
+    force_source: true
+
+- name: Stop the existing container
+  docker_container:
+    name: apiserver-{{ deploy_env }}
+    state: stopped
+  register: stopped_container
+  ignore_errors: yes
+
+- name: Run ApiServer container
+  docker_container:
+    name: apiserver-{{ deploy_env }}
+    image: "{{ apiserver_image_repo }}"
+    env_file: .env
+    published_ports: 80:80
+    detach: yes
+    command: /scripts/run-uwsgi.sh
+    state: started
+
+
+- name: Remove the stopped container
+  become: True
+  shell: docker container prune -f
+
+

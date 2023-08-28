@@ -1,0 +1,44 @@
+---
+
+- name: Check Docker installation status
+  command: docker --version
+  register: docker_version
+
+- name: Print Docker version
+  debug:
+    msg: "{{ docker_version.stdout }}"
+
+- name: Check Docker daemon status
+  systemd:
+    name: docker
+    state: started
+  register: docker_daemon_status
+
+- name: Removed unused docker images
+  become: True
+  shell: docker image prune -f
+
+
+- name: Check if .env file exists
+  stat:
+    path: .env
+  register: env_file
+
+- name: Print env file status
+  debug:
+    msg: ".env file exists: {{ env_file.stat.exists }}"
+
+- name: AWS | install python-pip
+  action: apt pkg={{ item }} state=present
+  with_items:
+    - python3-pip
+
+- name: AWS | install awscli
+  pip: name=awscli state=present
+
+
+- name: Run tasks/login_ecr.yml instead of 'main' from build docker
+  include_role:
+    name: ecr_docker_utils
+    tasks_from: login_ecr
+

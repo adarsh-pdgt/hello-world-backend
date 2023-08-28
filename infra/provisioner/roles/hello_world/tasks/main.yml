@@ -1,0 +1,10 @@
+---
+
+- import_tasks: install_docker.yml
+  tags: always
+
+- import_tasks: docker_status.yml
+  tags: always
+
+- import_tasks: apiserver_setup.yml
+  tags: deploy

@@ -1,0 +1,5 @@
+[dev]
+api.dev.hello_world.com
+
+[dev:vars]
+deploy_env=dev

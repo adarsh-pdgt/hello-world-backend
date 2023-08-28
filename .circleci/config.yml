@@ -1,0 +1,185 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+version: 2.1
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: python:3.9
+        environment:
+          DATABASE_URL: postgres://postgres@localhost/hello_world
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      - image: postgres:14.2
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: hello_world
+          POSTGRES_HOST_AUTH_METHOD: trust
+
+      - image: redis
+
+    working_directory: ~/hello-world-backend
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+           # requirements for development environment
+           - hello_world-v0-{{ checksum "requirements/development.txt" }}
+
+           # Fallback cache
+           - hello_world-v0
+
+      - run:
+          name: install-requirements
+          command: |
+            python3 -m venv .venv
+            . .venv/bin/activate
+
+            # install requirements for development environment
+            pip install -U -r requirements/development.txt
+            pip install flake8
+
+      # Save the dependency cache
+      - save_cache:
+          # requirements for development environment
+          key: hello_world-v0-{{ checksum "requirements/development.txt" }}
+          paths:
+            - .venv
+
+      - run:
+          name: run-tests
+          command: |
+            . .venv/bin/activate
+            pytest --cov -v --tb=native
+
+      - store_artifacts:
+          path: htmlcov
+
+  build_and_push_image:
+    jobs:
+      - aws-ecr/build-and-push-image:
+          context: aws-dev
+          create-repo: true
+          dockerfile: Dockerfile
+          path: .
+          repo: circleci-ecr-demo
+          tag: "$CIRCLE_SHA1"
+
+
+  deploy_aws:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: python:3.9
+
+    working_directory: ~/hello-world-backend
+
+    steps:
+      - checkout
+
+      # Download cache, would be build in build step
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+           # requirements for development environment
+           - hello_world-v0-{{ checksum "requirements/development.txt" }}
+
+           # Fallback cache
+           - hello_world-v0
+
+      - run:
+          name: install-requirements
+          command: |
+            python3 -m venv .venv
+            . .venv/bin/activate
+
+            # requirements for development environment
+            pip install -U -r requirements/development.txt
+
+      # Save the dependency cache
+      - save_cache:
+          # requirements for development environment
+          key: hello_world-v0-{{ checksum "requirements/development.txt" }}
+          paths:
+            - .venv
+
+      - run:
+          name: Fix host authenticity for servers
+          command: |
+            ssh-keyscan x.x.x.x >> ~/.ssh/known_hosts
+
+            # Prod IPs
+            ssh-keyscan x.x.x.x >> ~/.ssh/known_hosts
+            ssh-keyscan x.x.x.x >> ~/.ssh/known_hosts
+
+            echo "Host api.dev.hello_world.com" >> ~/.ssh/config
+            echo "    hostname x.x.x.x" >> ~/.ssh/config
+
+            echo "Host *" >> ~/.ssh/config
+            echo "    User ubuntu" >> ~/.ssh/config
+            echo "    ForwardAgent Yes" >> ~/.ssh/config
+
+      - run:
+          name: run deployment
+          command: |
+            if [ $CIRCLE_BRANCH == "main" ];
+            then
+                DEPLOY_ENVIRONMENT="dev";
+            else
+                DEPLOY_ENVIRONMENT=$CIRCLE_BRANCH;
+            fi
+
+            # activate virtual environment
+            . .venv/bin/activate
+
+            # add deployment command in here
+            ansible-playbook infra/provisioner/deploy-service.yml -i infra/provisioner/hosts/${DEPLOY_ENVIRONMENT} -i infra/provisioner/hosts/all --tags "deploy" --limit ${DEPLOY_ENVIRONMENT} -vvvv
+
+workflows:
+  version: 2
+  test-and-build:
+    jobs:
+      - build
+      - aws-ecr/build-and-push-image:
+          name: push-api-image
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main
+                - qa
+                - prod
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-cli-version: latest
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          context: .
+          create-repo: true
+          dockerfile: Dockerfile
+          executor: aws-ecr/default
+          no-output-timeout: 20m
+          path: infra/dockers/production/app
+          platform: linux/amd64
+          public-registry: false
+          push-image: true
+          region: us-west-2
+          registry-id: AWS_ACCOUNT_ID
+          repo: hello_world/api
+          skip-when-tags-exist: false
+      - deploy_aws:
+          name: deploy-aws
+          requires:
+            - push-api-image
+          filters:
+            branches:
+              only:
+                - main
+                - qa
+                - prod

@@ -1,0 +1,5 @@
+[prod]
+api.hello_world.com
+
+[prod:vars]
+deploy_env=prod

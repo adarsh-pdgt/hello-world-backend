@@ -1,0 +1,78 @@
+---
+
+- name: Update APT cache
+  apt:
+    update_cache: yes
+
+- name: Upgrade all packages
+  apt:
+    upgrade: full
+    force_apt_get: yes
+    autoclean: yes
+
+- name: Install packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+
+
+- name: Create directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu focal stable
+    state: present
+
+- name: Update APT cache
+  apt:
+    update_cache: yes
+
+
+- name: Install Docker packages
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    force_apt_get: true
+
+- name: Run systemctl command
+  shell: systemctl status docker --no-pager -l
+  register: docker_status
+
+- name: Print Docker service status
+  debug:
+    var: docker_status.stdout_lines
+
+- name: Create Docker group if it doesn't exist
+  group:
+    name: docker
+    state: present
+
+- name: Add user to Docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+

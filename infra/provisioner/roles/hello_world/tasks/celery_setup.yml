@@ -1,0 +1,32 @@
+---
+
+- name: Pull Celery image
+  community.docker.docker_image:
+    name: "{{ celery_image_repo }}"
+    source: pull
+    force_source: true
+
+
+- name: Run Celeryworker container
+  docker_container:
+    name: celeryworker-{{ deploy_env }}
+    image: "{{ celery_image_repo }}"
+    env_file: .env
+    detach: yes
+    command: /scripts/celery.sh
+    volumes:
+      - .:/app:z
+    state: started
+
+- name: Run Celerybeat container
+  docker_container:
+    name: celerybeat-{{ deploy_env }}
+    image: "{{ celery_image_repo }}"
+    env_file: .env
+    detach: yes
+    command: /scripts/celerybeat.sh
+    volumes:
+      - .:/app:z
+    state: started
+
+

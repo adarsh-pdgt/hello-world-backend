@@ -1,0 +1,12 @@
+---
+- hosts: dev
+  connection: local
+  gather_facts: False
+  become: yes
+  
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
+  
+  roles:
+    - {role: hello_world, tags: ['apiserver-deploy']}
