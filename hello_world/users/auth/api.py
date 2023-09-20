@@ -90,3 +90,8 @@ class AuthViewSet(MultipleSerializerMixin, viewsets.GenericViewSet):
         user.set_password(serializer.validated_data["new_password"])
         user.save()
         return response.NoContent()
+
+    @action(methods=["GET"], detail=False, url_path="validate", permission_classes=[IsAuthenticated])
+    def validate_token(self,request, *args, **kwargs):
+        user = request.user
+        return  response.Ok({"id": user.id, "email": user.email})

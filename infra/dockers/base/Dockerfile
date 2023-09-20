@@ -48,12 +48,22 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
 
+#RUN pip install poetry
+
+#ENV POETRY_NO_INTERACTION=1 \
+#    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+#    POETRY_VIRTUALENVS_CREATE=1 \
+#    POETRY_CACHE_DIR=/tmp/poetry_cache
+
 # install the basic requirements to cache in the base build
-COPY ./requirements .
-COPY pyproject.toml .
-RUN pip install -U pip poetry
-RUN poetry env use python3
-RUN poetry config virtualenvs.create false
-RUN poetry update
-RUN python3 -m pip install --upgrade pip wheel
-RUN poetry install
+#COPY pyproject.toml poetry.lock ./
+#
+## Install project dependencies using poetry
+#RUN poetry config virtualenvs.create false && \
+#    poetry install --no-interaction --no-ansi
+
+# install the basic requirements to cache in the base build
+COPY /requirements .
+
+# Install project dependencies using poetry
+RUN pip install -r development.txt
