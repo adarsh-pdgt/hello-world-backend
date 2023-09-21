@@ -19,24 +19,5 @@ services:
   redis:
     image: redis:6.2.6
     container_name: redis
-
-  django:
-    &django
-    build:
-      context: .
-      dockerfile: infra/dockers/local/app/Dockerfile
-    image: hello_world/local/app
-    container_name: django
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      - .:/app:z
-    env_file:
-      - .env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-
     ports:
-      - "8000:8000"
-    command: /scripts/runserver.sh
+      - "6379:6379"

@@ -63,3 +63,9 @@ markdown_extensions:
   - pymdownx.smartsymbols
   - markdown_include.include:
       base_path: docs
+
+
+
+# docker run -d -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -v /data:/var/lib/postgresql/data --name postgresql postgres:12.2
+
+# docker run -d -p 6379:6379 --name redis redis
